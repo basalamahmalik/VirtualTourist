@@ -69,9 +69,12 @@ class TravelLocationMapViewController: UIViewController {
     }
     
     func addPin(){
+        
         let gestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(self.handleTap(gestureReconizer:)))
+        
         gestureRecognizer.delegate = self as? UIGestureRecognizerDelegate
-        mapView.addGestureRecognizer(gestureRecognizer)
+            mapView.addGestureRecognizer(gestureRecognizer)
+
     }
     
     @objc func handleTap(gestureReconizer: UILongPressGestureRecognizer) {
@@ -81,8 +84,9 @@ class TravelLocationMapViewController: UIViewController {
         // Add annotation:
         let annotation = MKPointAnnotation()
         annotation.coordinate = coordinate
+        if gestureReconizer.state == UIGestureRecognizer.State.began {
         mapView.addAnnotation(annotation)
-        
+        }
         savePin(lat: coordinate.latitude,lon: coordinate.longitude)
         
         
@@ -129,8 +133,6 @@ extension TravelLocationMapViewController : MKMapViewDelegate {
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         
         let annotation = view.annotation
-        print(annotation!.coordinate.latitude)
-        print(annotation!.coordinate.longitude)
         let lat = annotation!.coordinate.latitude
         let lon = annotation!.coordinate.longitude
         if let data = fetchedResultsController.fetchedObjects{
@@ -140,7 +142,7 @@ extension TravelLocationMapViewController : MKMapViewDelegate {
                     performSegue(withIdentifier: "toCollection", sender: self)
                     break
                 }else{
-                    print("not equal")
+                    print("something went wrong # SEGUE")
                 }
             }
         }
@@ -158,13 +160,6 @@ extension Pin: MKAnnotation {
 
 extension TravelLocationMapViewController: NSFetchedResultsControllerDelegate {
     
-//    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-//
-//    }
-//
-//    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-//
-//    }
     
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         

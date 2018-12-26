@@ -51,21 +51,77 @@ extension Client{
                 return
             }
             
-            if photosArray.isEmpty {
-                let stringError = "No Image Found"
-                completion(true ,nil ,stringError)
+            /* GUARD: Is "pages" key in the photosDictionary? */
+            guard let totalPages = photosDictionary[Constants.FlickrResponseKeys.Pages] as? Int else {
+                completion(false,nil,"Cannot find key '\(Constants.FlickrResponseKeys.Pages)' in \(photosDictionary)")
+                return
             }
             
-            let informations = LocationInformation.LocationsFromResults(photosArray)
+            let pageLimit = min(totalPages, 10)
+            let randomPage = Int(arc4random_uniform(UInt32(pageLimit))) + 1
             
-//                /* GUARD: Does our photo have a key for 'url_m'? */
-//            let dataObject = try! JSONSerialization.data(withJSONObject: photosArray, options: .prettyPrinted)
-//            //Use JSONDecoder to convert dataObject to an array of structs
-//            let pictures = try! JSONDecoder().decode([LocationInformation].self, from: dataObject)
-            completion(true,informations,nil)
+            self.displayImageFromFlickr(parameters as [String : AnyObject], withPageNumber: randomPage, completion: { (success, results, errorString) in
+                if success{
+                    if errorString == "No Image Found" {
+                        completion(true ,nil ,errorString)
+                    }else{
+                    completion(true,results,nil)
+                }
+                }else{
+                    print(error?.localizedDescription ?? "Something Went Wrong")
+                }
+            })
+
         }
     }
+
+    func displayImageFromFlickr(_ methodParameters: [String: AnyObject], withPageNumber: Int, completion: @escaping (_ success:Bool,[LocationInformation]?, _ errorString: String?)->Void) {
     
+    // add the page to the method's parameters
+    var methodParametersWithPageNumber = methodParameters
+    methodParametersWithPageNumber[Constants.FlickrParameterKeys.Page] = withPageNumber as AnyObject?
+    
+    // create session and request
+    let _ = taskForGETMethod(methodParametersWithPageNumber as [String : AnyObject]) { (results, error) in
+        
+        guard (error == nil) else{
+            print(error!)
+            completion(false ,nil,error?.localizedDescription)
+            return
+        }
+        
+        /* GUARD: Did Flickr return an error (stat != ok)? */
+        guard let stat = results?[Constants.FlickrResponseKeys.Status] as? String, stat == Constants.FlickrResponseValues.OKStatus else {
+            print("Flickr API returned an error. See error code and message in \(results!)")
+            completion(false,nil,error?.localizedDescription)
+            return
+        }
+        
+        /* GUARD: Is "photos" key in our result? */
+        guard let photosDictionary = results?[Constants.FlickrResponseKeys.Photos] as? [String:AnyObject] else {
+            print("Cannot find keys '\(Constants.FlickrResponseKeys.Photos)' in \(results!)")
+            completion(false,nil,error?.localizedDescription)
+            return
+        }
+        
+        /* GUARD: Is the "photo" key in photosDictionary? */
+        guard let photosArray = photosDictionary[Constants.FlickrResponseKeys.Photo] as? [[String: AnyObject]], photosArray.count != 0 else {
+            print("Cannot find key '\(Constants.FlickrResponseKeys.Photo)' in \(photosDictionary)")
+            return
+        }
+        
+        if photosArray.isEmpty {
+            let stringError = "No Image Found"
+            completion(true ,nil ,stringError)
+        }
+        
+        let informations = LocationInformation.LocationsFromResults(photosArray)
+        
+        completion(true,informations,nil)
+    }
+}
+
+
     func downloadImages(imageUrl: String, complietion: @escaping (_ success:Bool, _ result: Data?, _ error: NSError?) -> Void) {
 
         guard let url = URL(string: imageUrl) else {

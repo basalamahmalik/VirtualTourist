@@ -20,7 +20,7 @@ class PhotoAlbumViewController: UIViewController{
     @IBOutlet weak var noImage: UILabel!
     
     var selectedPin: Pin!
-    
+    var photos: Photo!
     var locations = LocationDataSource.sharedInstance.Locations
     var selectedPhotos = [IndexPath]()
     var arrayURL = [String]()
@@ -46,13 +46,11 @@ class PhotoAlbumViewController: UIViewController{
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         collectionView.delegate = self
         mapView.delegate = self
         collectionView.allowsMultipleSelection = true
         barButton.isEnabled = false
         noImage.isHidden = true
-        
         setUpFetchedResultsController()
         zoomPin()
         flowLayoutConfig()
@@ -67,6 +65,7 @@ class PhotoAlbumViewController: UIViewController{
         collectionView.reloadData()
     }
     
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         fetchedResultsController = nil
@@ -200,27 +199,34 @@ class PhotoAlbumViewController: UIViewController{
 extension PhotoAlbumViewController: UICollectionViewDataSource, UICollectionViewDelegate{
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        if let sectionInformation = self.fetchedResultsController.sections?[section] {
-            return sectionInformation.numberOfObjects
-        }
+
+            if let sectionInformation = self.fetchedResultsController.sections?[section] {
+                return sectionInformation.numberOfObjects
+            }
         return 0
     }
     
+    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        
+
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CollectionCell" , for: indexPath) as! CollectionViewCell
-        
+
+        if self.fetchedResultsController.fetchedObjects?.count == 0{
+        cell.imageViewCell.image = nil
         cell.selectView.isHidden = true
         cell.indicator.isHidden = false
         cell.indicator.startAnimating()
-        
+        }else{
         let arrayData = self.fetchedResultsController.fetchedObjects!
-        
-        self.barButton.isEnabled = true
-        cell.indicator.stopAnimating()
-        cell.indicator.isHidden=true
-        cell.imageViewCell.image =  UIImage(data: arrayData[indexPath.row].imageData!)
+        let data = arrayData[indexPath.row].imageData!
 
+        performUIUpdatesOnMain {
+            self.barButton.isEnabled = true
+            cell.indicator.stopAnimating()
+            cell.indicator.isHidden=true
+            cell.imageViewCell.image =  UIImage(data: data)
+            }
+        }
         return cell
     }
   
